@@ -1,16 +1,21 @@
 export {};
 
+const canvas = document.querySelector<HTMLCanvasElement>("#rover-canvas")!;
+const ctx = canvas.getContext("2d")!;
+const readout = document.querySelector<HTMLParagraphElement>("#rover-readout")!;
+const pendingList = document.querySelector<HTMLOListElement>("#rover-pending")!;
+const queueStatus = document.querySelector<HTMLParagraphElement>(
+  "#rover-queue-status",
+)!;
+const runButton = document.querySelector<HTMLButtonElement>("#rover-run")!;
+const clearButton = document.querySelector<HTMLButtonElement>("#rover-clear")!;
+
 const HEADINGS: Heading[] = [
   { name: "North", directionX: 0, directionY: -1 },
   { name: "East", directionX: 1, directionY: 0 },
   { name: "South", directionX: 0, directionY: 1 },
   { name: "West", directionX: -1, directionY: 0 },
 ];
-
-const canvas = document.querySelector<HTMLCanvasElement>("#rover-canvas")!;
-const ctx = canvas.getContext("2d")!;
-const readout = document.querySelector<HTMLParagraphElement>("#rover-readout")!;
-const headings = ["North", "East", "South", "West"];
 let x = 2;
 let y = 2;
 let direction = 0;
@@ -35,11 +40,12 @@ function drawRover() {
   ctx.fill();
   ctx.restore();
   readout.textContent = `Position: (${x}, ${y}) · Facing: ${
-    headings[direction]
+    HEADINGS[direction].name
   }`;
 }
 
 interface Command {
+  label: string;
   execute(): void;
 }
 
@@ -54,6 +60,7 @@ function clampToGrid(value: number) {
 }
 
 const moveForward: Command = {
+  label: "Forward",
   execute() {
     const heading = HEADINGS[direction];
     x = clampToGrid(x + heading.directionX);
@@ -62,26 +69,63 @@ const moveForward: Command = {
 };
 
 const turnRight: Command = {
+  label: "Right",
   execute() {
     direction = (direction + 1) % HEADINGS.length;
   },
 };
 
-function runCommand(command: Command) {
-  command.execute();
+const commandQueue: Command[] = [];
+
+function renderQueue() {
+  pendingList.replaceChildren(
+    ...commandQueue.map((command) => {
+      const item = document.createElement("li");
+      item.textContent = command.label;
+      return item;
+    }),
+  );
+  const isEmpty = commandQueue.length === 0;
+  queueStatus.textContent = isEmpty
+    ? "Empty"
+    : `${commandQueue.length} pending`;
+  runButton.disabled = isEmpty;
+  clearButton.disabled = isEmpty;
+}
+
+function enqueueCommand(command: Command) {
+  commandQueue.push(command);
+  renderQueue();
+}
+
+function runQueue() {
+  while (commandQueue.length > 0) {
+    commandQueue.shift()!.execute();
+  }
+  renderQueue();
   drawRover();
 }
 
+function clearQueue() {
+  commandQueue.length = 0;
+  renderQueue();
+}
+
 document.querySelector<HTMLButtonElement>("#rover-forward")!.onclick = () => {
-  runCommand(moveForward);
+  enqueueCommand(moveForward);
 };
 document.querySelector<HTMLButtonElement>("#rover-right")!.onclick = () => {
-  runCommand(turnRight);
+  enqueueCommand(turnRight);
 };
 document.querySelector<HTMLButtonElement>("#rover-reset")!.onclick = () => {
   x = 2;
   y = 2;
   direction = 0;
+  clearQueue();
   drawRover();
 };
+document.querySelector<HTMLButtonElement>("#rover-run")!.onclick = runQueue;
+document.querySelector<HTMLButtonElement>("#rover-clear")!.onclick = clearQueue;
+
+renderQueue();
 drawRover();
