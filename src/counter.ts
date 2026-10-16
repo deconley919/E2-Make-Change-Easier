@@ -59,11 +59,15 @@ function setCount(next: number) {
   const bounded = Math.max(0, Math.min(SHIELD_CAPACITY, next));
   if (bounded === count) return;
   count = bounded;
-  const shield = shieldSnapshot(count);
   shieldEvents.dispatchEvent(
-    new CustomEvent<ShieldSnapshot>(SHIELD_CHANGED, { detail: shield }),
+    new CustomEvent<ShieldSnapshot>(SHIELD_CHANGED, {
+      detail: shieldSnapshot(count),
+    }),
   );
-  if (panel) updateStats(shield);
+}
+
+function deliverToInspector(event: Event) {
+  updateStats((event as CustomEvent<ShieldSnapshot>).detail);
 }
 
 document.querySelector<HTMLButtonElement>("#counter-less")!.onclick = () => {
@@ -80,9 +84,11 @@ document.querySelector<HTMLButtonElement>("#counter-open")!.onclick = () => {
   panel = document.createElement("p");
   host.append(panel);
   renderStats(shieldSnapshot(count));
+  shieldEvents.addEventListener(SHIELD_CHANGED, deliverToInspector);
 };
 document.querySelector<HTMLButtonElement>("#counter-close")!.onclick = () => {
   if (!panel) return;
+  shieldEvents.removeEventListener(SHIELD_CHANGED, deliverToInspector);
   panel.remove();
   panel = null;
 };
