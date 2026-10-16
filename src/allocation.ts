@@ -4,6 +4,15 @@ const PRODUCER_SLOTS = 6;
 const OUTPUT_PER_PRODUCER = 3;
 const SHIFT_CONSUMPTION = 6;
 
+const RESOURCE_ROWS: ResourceRow[] = [
+  { label: "Production", color: "#27766b", value: (shift) => shift.production },
+  {
+    label: "Consumption",
+    color: "#a44d23",
+    value: (shift) => shift.consumption,
+  },
+];
+
 const canvas = document.querySelector<HTMLCanvasElement>("#allocation-canvas")!;
 const ctx = canvas.getContext("2d")!;
 const readout = document.querySelector<HTMLParagraphElement>(
@@ -17,6 +26,12 @@ interface ShiftResult {
   production: number;
   consumption: number;
   balance: number;
+}
+
+interface ResourceRow {
+  label: string;
+  color: string;
+  value: (shift: ShiftResult) => number;
 }
 
 function calculateShift(producers: number): ShiftResult {
@@ -56,13 +71,15 @@ function drawResourceBars(shift: ShiftResult) {
     18,
     76,
   );
-  ctx.fillText(`Production: ${shift.production}`, 18, 102);
-  ctx.fillStyle = "#27766b";
-  ctx.fillRect(18, 110, shift.production * 14, 20);
-  ctx.fillStyle = "#233e43";
-  ctx.fillText(`Consumption: ${shift.consumption}`, 18, 154);
-  ctx.fillStyle = "#a44d23";
-  ctx.fillRect(18, 162, shift.consumption * 14, 20);
+
+  RESOURCE_ROWS.forEach((row, index) => {
+    const labelY = 102 + index * 52;
+    const value = row.value(shift);
+    ctx.fillStyle = "#233e43";
+    ctx.fillText(`${row.label}: ${value}`, 18, labelY);
+    ctx.fillStyle = row.color;
+    ctx.fillRect(18, labelY + 8, value * 14, 20);
+  });
 }
 
 function updateReadout(shift: ShiftResult) {
