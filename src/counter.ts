@@ -1,6 +1,8 @@
 export {};
 
 const SHIELD_CAPACITY = 10;
+const SHIELD_CHANGED = "shield-changed";
+const shieldEvents = new EventTarget();
 
 interface ShieldSnapshot {
   charge: number;
@@ -23,7 +25,7 @@ let panelUpdates = 0;
 
 function drawMeter(shield: ShieldSnapshot) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < shield.capacity; i++) {
     ctx.fillStyle = i < shield.charge ? "#27766b" : "#c9d2c9";
     ctx.fillRect(12 + i * 28, 24, 24, 48);
   }
@@ -58,7 +60,9 @@ function setCount(next: number) {
   if (bounded === count) return;
   count = bounded;
   const shield = shieldSnapshot(count);
-  drawMeter(shield);
+  shieldEvents.dispatchEvent(
+    new CustomEvent<ShieldSnapshot>(SHIELD_CHANGED, { detail: shield }),
+  );
   if (panel) updateStats(shield);
 }
 
@@ -82,4 +86,9 @@ document.querySelector<HTMLButtonElement>("#counter-close")!.onclick = () => {
   panel.remove();
   panel = null;
 };
+
+shieldEvents.addEventListener(SHIELD_CHANGED, (event) => {
+  drawMeter((event as CustomEvent<ShieldSnapshot>).detail);
+});
+
 drawMeter(shieldSnapshot(count));
