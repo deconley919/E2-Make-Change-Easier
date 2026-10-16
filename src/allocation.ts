@@ -1,5 +1,9 @@
 export {};
 
+const PRODUCER_SLOTS = 6;
+const OUTPUT_PER_PRODUCER = 3;
+const SHIFT_CONSUMPTION = 6;
+
 const canvas = document.querySelector<HTMLCanvasElement>("#allocation-canvas")!;
 const ctx = canvas.getContext("2d")!;
 const readout = document.querySelector<HTMLParagraphElement>(
@@ -7,49 +11,65 @@ const readout = document.querySelector<HTMLParagraphElement>(
 )!;
 let producerCount = 2;
 
-function updateDisplay() {
-  const totalProduction = producerCount * 3;
-  const totalConsumption = 6;
-  const balance = totalProduction - totalConsumption;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  drawProducerSlots();
-  drawResourceBars(totalProduction, totalConsumption);
-  updateReadout(totalProduction, totalConsumption, balance);
+interface ShiftResult {
+  producers: number;
+  producerSlots: number;
+  production: number;
+  consumption: number;
+  balance: number;
 }
 
-function drawProducerSlots() {
-  for (let i = 0; i < 6; i++) {
-    ctx.fillStyle = i < producerCount ? "#27766b" : "#c9d2c9";
+function calculateShift(producers: number): ShiftResult {
+  const production = producers * OUTPUT_PER_PRODUCER;
+  return {
+    producers,
+    producerSlots: PRODUCER_SLOTS,
+    production,
+    consumption: SHIFT_CONSUMPTION,
+    balance: production - SHIFT_CONSUMPTION,
+  };
+}
+
+function updateDisplay() {
+  const shift = calculateShift(producerCount);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawProducerSlots(shift);
+  drawResourceBars(shift);
+  updateReadout(shift);
+}
+
+function drawProducerSlots(shift: ShiftResult) {
+  for (let i = 0; i < shift.producerSlots; i++) {
+    ctx.fillStyle = i < shift.producers ? "#27766b" : "#c9d2c9";
     ctx.fillRect(18 + i * 45, 16, 36, 36);
-    ctx.fillStyle = i < producerCount ? "#ffffff" : "#233e43";
+    ctx.fillStyle = i < shift.producers ? "#ffffff" : "#233e43";
     ctx.font = "16px system-ui";
     ctx.fillText(String(i + 1), 31 + i * 45, 40);
   }
 }
 
-function drawResourceBars(production: number, consumption: number) {
+function drawResourceBars(shift: ShiftResult) {
   ctx.fillStyle = "#233e43";
   ctx.font = "14px system-ui";
-  ctx.fillText(`Producers: ${producerCount} / 6`, 18, 76);
-  ctx.fillText(`Production: ${production}`, 18, 102);
+  ctx.fillText(
+    `Producers: ${shift.producers} / ${shift.producerSlots}`,
+    18,
+    76,
+  );
+  ctx.fillText(`Production: ${shift.production}`, 18, 102);
   ctx.fillStyle = "#27766b";
-  ctx.fillRect(18, 110, production * 14, 20);
+  ctx.fillRect(18, 110, shift.production * 14, 20);
   ctx.fillStyle = "#233e43";
-  ctx.fillText(`Consumption: ${consumption}`, 18, 154);
+  ctx.fillText(`Consumption: ${shift.consumption}`, 18, 154);
   ctx.fillStyle = "#a44d23";
-  ctx.fillRect(18, 162, consumption * 14, 20);
+  ctx.fillRect(18, 162, shift.consumption * 14, 20);
 }
 
-function updateReadout(
-  production: number,
-  consumption: number,
-  balance: number,
-) {
+function updateReadout(shift: ShiftResult) {
   readout.textContent =
-    `Assigned: ${producerCount}/6 · Production: ${production} · Consumption: ${consumption} · Balance: ${
-      balance > 0 ? "+" : ""
-    }${balance}`;
+    `Assigned: ${shift.producers}/${shift.producerSlots} · Production: ${shift.production} · Consumption: ${shift.consumption} · Balance: ${
+      shift.balance > 0 ? "+" : ""
+    }${shift.balance}`;
 }
 
 document.querySelector<HTMLButtonElement>("#allocation-less")!.onclick = () => {
@@ -57,7 +77,7 @@ document.querySelector<HTMLButtonElement>("#allocation-less")!.onclick = () => {
   updateDisplay();
 };
 document.querySelector<HTMLButtonElement>("#allocation-more")!.onclick = () => {
-  producerCount = Math.min(6, producerCount + 1);
+  producerCount = Math.min(PRODUCER_SLOTS, producerCount + 1);
   updateDisplay();
 };
 document.querySelector<HTMLButtonElement>("#allocation-reset")!.onclick =
