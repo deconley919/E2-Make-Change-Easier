@@ -1,5 +1,12 @@
 export {};
 
+const HEADINGS: Heading[] = [
+  { name: "North", directionX: 0, directionY: -1 },
+  { name: "East", directionX: 1, directionY: 0 },
+  { name: "South", directionX: 0, directionY: 1 },
+  { name: "West", directionX: -1, directionY: 0 },
+];
+
 const canvas = document.querySelector<HTMLCanvasElement>("#rover-canvas")!;
 const ctx = canvas.getContext("2d")!;
 const readout = document.querySelector<HTMLParagraphElement>("#rover-readout")!;
@@ -36,18 +43,27 @@ interface Command {
   execute(): void;
 }
 
+interface Heading {
+  name: string;
+  directionX: number;
+  directionY: number;
+}
+
+function clampToGrid(value: number) {
+  return Math.min(4, Math.max(0, value));
+}
+
 const moveForward: Command = {
   execute() {
-    if (direction === 0) y = Math.max(0, y - 1);
-    if (direction === 1) x = Math.min(4, x + 1);
-    if (direction === 2) y = Math.min(4, y + 1);
-    if (direction === 3) x = Math.max(0, x - 1);
+    const heading = HEADINGS[direction];
+    x = clampToGrid(x + heading.directionX);
+    y = clampToGrid(y + heading.directionY);
   },
 };
 
 const turnRight: Command = {
   execute() {
-    direction = (direction + 1) % 4;
+    direction = (direction + 1) % HEADINGS.length;
   },
 };
 
